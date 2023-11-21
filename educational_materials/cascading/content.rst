@@ -349,7 +349,6 @@
       
     }
     
-    
     void shift_and_set(bool val) {
       digitalWrite(latchPin, LOW);
       digitalWrite(dataPin, val);
