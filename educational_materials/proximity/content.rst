@@ -139,6 +139,67 @@
       previous_read = val;
     }
 
+На этом этапе мы смогли устранить дребезг и убедиться, что действительно кнопка была нажата. Мы можем получить больше информации, например количество нажатий и время, которое мы удерживаем кнопку. Для подсчета времени удержания нам нужно завести еще одну переменную, и назовем ее ``hold_time``, в нее мы будем записывать текущее время минус время нажатия (``press_time``) и делать это будем только если нажатие действительно было.
+
+.. code-block:: c++
+
+    #define BUTTON_PIN 2
+    #define PRESSED HIGH
+    #define BOUNCE_TIME 50
+    
+    int press_count = 0;
+    int previous = 0;
+    long int hold_time = 0;
+    long int press_time = 0;
+    bool check_press = false;
+    bool button_pressed = false;
+    
+    void setup(){
+      pinMode(BUTTON_PIN, INPUT);
+      Serial.begin(9600);
+    } 
+    
+    void loop() {
+      // press event candidate
+      int val = digitalRead(BUTTON_PIN);
+      if(check_press == false and
+         val == PRESSED and 
+         previous != PRESSED) 
+      {
+        hold_time = 0;
+        press_time = millis();
+        check_press = true;
+      }
+      // debounce
+      if(check_press == true and 
+         millis() - press_time > BOUNCE_TIME) 
+      {
+        if(digitalRead(BUTTON_PIN) == PRESSED){
+          button_pressed = true;
+          press_count++;
+          //Serial.print("Button is pressed ");
+          //Serial.println(press_count);
+        } else {
+          check_press = false;
+        }
+      }
+      // hold time counter
+      if(button_pressed == true) {
+      	hold_time = millis() - press_time;
+        //Serial.print("Button is hold ");
+        //Serial.println(hold_time);
+      } 
+      // released event
+      if(button_pressed == true and
+         previous == PRESSED and
+         val != PRESSED) 
+      {
+        //Serial.print("Button is released ");
+        button_pressed = false;
+        check_press = false;
+      }
+      previous = val;
+    }
 
 Это будет хорошо работать, если нам не нужно ничего больше делать кроме опроса кнопки и если мы не будем совершать длительных операций по ее нажатию. Мы можем легко симулировать это добавить ``delay(2000)`` самой первой инструкцией в ``loop()``. Для того чтобы работать с кнопкой в окружении кода, который делает еще много чего и не пропускать нажатия, нам понадобятся аппаратные прерывания. Прерывания помогают нам прервать обычный ход программы и выполнить инструкции, которые нужно выполнить здесь и сейчас. Параллельности у нас по-прежнему нет, но мы может отвлечь микроконтроллер на более важные дела по событию, так как мы не знаем когда будет нажата кнопка. 
 
@@ -183,4 +244,6 @@
         check_press = true;
       }
     }
+
+
 
