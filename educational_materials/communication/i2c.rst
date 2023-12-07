@@ -45,23 +45,25 @@ I2C обычно используется для подключения разл
 
 .. code-block:: c++
 
-    #include <Wire.h>
 
+    
+    #include <Wire.h>
+    
     void setup() {
       Serial.begin(9600);
       Wire.begin(); // join I2C bus as master no address needed
     }
     
     void loop() {
-      // Send data to Arduino Board 2
-      Wire.beginTransmission(9); // 9 is the slave address of Arduino Board 2
+    
+      Wire.beginTransmission(9); 
       Wire.write("Hello from master!");
       Wire.endTransmission();
     
       delay(1000);
     
       // Receive data from Arduino Board 2
-      Wire.requestFrom(9, 32); // request 32 bytes from slave device with address 9
+      Wire.requestFrom(9, 17); 
       while (Wire.available()) {
         char c = Wire.read();
         Serial.print(c);
@@ -71,33 +73,33 @@ I2C обычно используется для подключения разл
       delay(1000);
     }
 
-На slave 
+На slave:
 
 .. code-block:: c++
 
 
     #include <Wire.h>
-    
+        
     void setup() {
+      Wire.begin(9);                
+      Wire.onReceive(receiveEvent); 
+      Wire.onRequest(requestEvent);
       Serial.begin(9600);
-      Wire.begin(9); // join I2C bus as slave with address 9
-      Wire.onReceive(receiveEvent);
     }
     
-    void loop() {
-      // Do something in the loop if needed
+    void loop(){
     }
+    
     
     void receiveEvent(int length) {
       while (Wire.available()) {
         char c = Wire.read();
         Serial.print(c);
+        delay(10); 
       }
-    
-      // Send data back to Arduino Board 1
-      Wire.beginTransmission(8); // 8 is the address of Arduino Board 1
-      Wire.write("Hello from slave!");
-      Wire.endTransmission();
     }
-
+    
+    void requestEvent(){
+      Wire.write("Hello from slave!");
+    }
 
