@@ -28,7 +28,7 @@ bool StartAPMode() {
 
 void StartCLIMode() {
   wifiMulti.addAP(ssidCLI, passwordCLI);
-  Serial.println("")
+  Serial.println("");
   Serial.print("Connecting to SSID " + String(ssidCLI));
   Serial.println("; with password " + String(passwordCLI));
 
