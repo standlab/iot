@@ -67,11 +67,15 @@ if __name__ == "__main__":
         print(f"Subcribing to {topic}")
         client.subscribe(topic)
     while True:
-        for actuator, (need_check, check_time) in check_states.items():
-            if need_check and check_time < datetime.now():
-                if actuator == "light":
-                    check_light()
-                # other check here
+        try:
+            for actuator, (need_check, check_time) in check_states.items():
+                if need_check and check_time < datetime.now():
+                    if actuator == "light":
+                        check_light()
+                    # other check here
+        except KeyboardInterrupt:
+            print("Monitoring finisshed....")
+            break
 
     client.disconnect()
     client.loop_stop()
