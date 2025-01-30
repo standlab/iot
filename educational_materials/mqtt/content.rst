@@ -1,6 +1,41 @@
 MQTT
 ====
 
+Что понадобиться (вывод примерный и может отличаться для разных ОС):
+
+* ПК c установленным python и pip:
+
+.. code-block:: bash
+
+    artem@pc:~$ python
+        Python 3.11.5 (main, Sep 11 2023, 13:54:46) [GCC 11.2.0] on linux
+        Type "help", "copyright", "credits" or "license" for more information.
+    >>> exit()
+    artem@pc:~$ pip --version
+        pip 23.3.1 
+
+Если содержит сообщения об ошибке (например что программа не найдена).
+
+* Доступ в интернет с ПК, который не ограничивает доступ к брокеру который мы используем.
+
+.. code-block:: bash
+
+    artem@pc:~$ ping emqx.io
+        PING emqx.io (47.57.143.43) 56(84) bytes of data.
+        64 bytes from 47.57.143.43 (47.57.143.43): icmp_seq=1 ttl=38 time=409 ms
+        64 bytes from 47.57.143.43 (47.57.143.43): icmp_seq=2 ttl=38 time=536 ms
+        64 bytes from 47.57.143.43 (47.57.143.43): icmp_seq=3 ttl=38 time=559 ms
+
+* Установленный клиент для MQTT
+
+.. code-block:: bash
+
+    artem@pc:~$ pip install paho-mqtt
+        Requirement already satisfied: paho-mqtt in ./miniconda3/envs/py312/lib/python3.12/site-packages (2.1.0)
+
+Передача сообщений запрос-ответ
+-------------------------------
+
 Когда мы используем "интернет людей" для доступа к каким любо ресурсам в сети мы используем модель 
 взаимодействия запрос-ответ (request-response). Это достаточно распространенная модель хотя и не 
 исчерпывает все разнообразие сценариев. Здесь человек или приложение, которым пользуется человек 
