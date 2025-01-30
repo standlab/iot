@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     for itteration in range(10):
         val = str(random.randint(100, 999))
-        client.publish(luminosity_topic, val)
+        client.publish(luminosity_topic, val, qos=2)
         print(f"Itteration {itteration} publish luminosity - {val} to {luminosity_topic}")
         time.sleep(10)
         

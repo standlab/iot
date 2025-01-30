@@ -24,12 +24,12 @@ def process_luminosity_data(data: bytes, client: Client):
     if float(data) < 500 and light_state == "on":
         print("Setting light off")
         light_state = set_light_off()
-        client.publish(light_status_topic, light_state)
+        client.publish(light_status_topic, light_state, qos=2)
         print(f"Published status {light_state} to {light_status_topic}")
     elif float(data) > 500 and light_state == "off":
         print("Setting light on")
         light_state = set_light_on()
-        client.publish(light_status_topic, light_state)
+        client.publish(light_status_topic, light_state, qos=2)
         print(f"Published status {light_state} to {light_status_topic}")
     else:
         print("Light state remains the same")
@@ -60,8 +60,8 @@ if __name__ == "__main__":
     client.connect(broker) 
     client.loop_start() 
     print(f"Subcribing to {luminosity_topic}")
-    client.subscribe(luminosity_topic)
-    client.publish(light_status_topic, light_state)
+    client.subscribe(luminosity_topic, qos=2)
+    client.publish(light_status_topic, light_state, qos=2)
     time.sleep(1800)
     client.disconnect()
     client.loop_stop()

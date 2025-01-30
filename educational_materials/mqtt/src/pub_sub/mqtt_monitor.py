@@ -65,7 +65,7 @@ if __name__ == "__main__":
     client.loop_start() 
     for topic in topics:
         print(f"Subcribing to {topic}")
-        client.subscribe(topic)
+        client.subscribe(topic, qos=2)
     while True:
         try:
             for actuator, (need_check, check_time) in check_states.items():

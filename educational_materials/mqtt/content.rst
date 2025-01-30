@@ -102,7 +102,51 @@ MQTT
     luminosity/home/livingroom       #топик чтобы узнать освещенность в гостинной
     humidity/kitchen/home            #топик чтобы узнать влажность на кухне
     humidity/home/livingroom/flower  #топик чтобы узнать влажность почвы у цветка в гостиной
-    
+
+
+QoS
+---
+
+При отправке сообщений по протоколу MQTT очень важно понимать, насколько важно доставить данные 
+потребителю. Бывают разные суенарии в одних мы можем смириться что некоторые данные будут 
+пропадать, например не так важно доставить каждое показание датчика освещенности по которому 
+всключается дополнительно освещение - включим свет на минут позже никто и не хаметит. Но бывают и 
+ситуации, когда доставить данные очень важно, например если мы включаем свет при наступлении ночи
+и хотим сообщить об этом мы делаем это раз в сутки и нехотим, что бы наше сообщение потерялось.
+В отличие от подхода запрос-ответ, где пользователь может перезапросить данные если не увидит их 
+у себя на экране, в IoT клиенты-поставщики не могут заниматься тем, чтобы гаранитировать доставку 
+каждому из клиентов.
+
+Для этого в MQTT используется параметр quality-of-service, который принимает три значения и значит 
+следующие:
+
+* 0 - at most once (максмум один раз). Данные могут не дойти
+* 1 - at least once (как минимум один раз). Данные точно дойдут, но могут быть дубликаты
+* 2 - exactly once (точно один раз). Данные точно дойдут, и не будет дубликатов. 
+
+За все приходиться платить и каждый следующий уровень "дороже" в плане трафика, данных которые 
+ходят по сети, который он потребляет. Картинки ниже дают представление о том, что происходит 
+при отправке данных с тем или иным QoS. Каждая стрелка символизирует отправку данных по сети.
+
+.. image:: https://www.hivemq.com/sb-assets/f/243938/1024x360/41d4e98134/qos-levels_qos0.webp
+  :width: 800
+  :alt: "Topic"
+
+.. image:: https://www.hivemq.com/sb-assets/f/243938/1024x360/529ab80be0/qos-levels_qos1.webp
+  :width: 800
+  :alt: "Topic"
+
+.. image:: https://www.hivemq.com/sb-assets/f/243938/1024x360/3b314a5496/qos-levels_qos2.webp
+  :width: 800
+  :alt: "Topic"
+
+
+QoS можно определить при отправке сообщения, так и при подписке на топик. QoS при подписке имеет
+приоритет, т.е. если потребитель не хочет гарантировано получать данные, которые поставщик 
+отправил с QoS 2, сервер не будет настаивать на гарантированной доставке. Таким образом QoS 
+при отправке влияет на доставки сообщение от поставщика на сервер. Далее когда сообщения уже на 
+срвере, QoS при подписке влияет на доставке сообщений от сервера потребителям. 
+
 
 Практика
 --------
@@ -137,7 +181,7 @@ MQTT
 
         for itteration in range(10):
             val = str(random.randint(100, 999))
-            client.publish(luminosity_topic, val)
+            client.publish(luminosity_topic, val, qos=2)
             print(f"Itteration {itteration} publish luminosity - {val} to {luminosity_topic}")
             time.sleep(10)
             
@@ -192,7 +236,7 @@ ID клиента, так чтобы оно не пересекалось с ID 
         client.connect(broker) 
         client.loop_start() 
         print(f"Subcribing to {luminosity_topic}")
-        client.subscribe(luminosity_topic)
+        client.subscribe(luminosity_topic, qos=2)
         time.sleep(1800)
         client.disconnect()
         client.loop_stop() 
@@ -239,12 +283,12 @@ ID клиента, так чтобы оно не пересекалось с ID 
         if float(data) < 500 and light_state == "on":
             print("Setting light off")
             light_state = set_light_off()
-            client.publish(light_status_topic, light_state)
+            client.publish(light_status_topic, light_state, qos=2)
             print(f"Published status {light_state} to {light_status_topic}")
         elif float(data) > 500 and light_state == "off":
             print("Setting light on")
             light_state = set_light_on()
-            client.publish(light_status_topic, light_state)
+            client.publish(light_status_topic, light_state, qos=2)
             print(f"Published status {light_state} to {light_status_topic}")
         else:
             print("Light state remains the same")
@@ -275,8 +319,8 @@ ID клиента, так чтобы оно не пересекалось с ID 
         client.connect(broker) 
         client.loop_start() 
         print(f"Subcribing to {luminosity_topic}")
-        client.subscribe(luminosity_topic)
-        client.publish(light_status_topic, light_state)
+        client.subscribe(luminosity_topic, qos=2)
+        client.publish(light_status_topic, light_state, qos=2)
         time.sleep(1800)
         client.disconnect()
         client.loop_stop()
@@ -376,7 +420,7 @@ Cоздадим новый модуль ``mqtt_monitor.py``.
         client.loop_start() 
         for topic in topics:
             print(f"Subcribing to {topic}")
-            client.subscribe(topic)
+            client.subscribe(topic, qos=2)
         while True:
             try:
                 for actuator, (need_check, check_time) in check_states.items():

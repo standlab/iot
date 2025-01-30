@@ -32,7 +32,7 @@ if __name__ == "__main__":
     client.connect(broker)
     client.loop_start()
     print(f"Subcribing to {luminosity_topic}")
-    client.subscribe(luminosity_topic)
+    client.subscribe(luminosity_topic, qos=2)
     time.sleep(1800)
     client.disconnect()
     client.loop_stop()
