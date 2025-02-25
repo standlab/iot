@@ -110,6 +110,8 @@ def get_device_config(device_id: str):
 
 @app.post("/configs/{device_id}", response_model=ConfigSettings)
 def set_device_config(device_id: str, config: ConfigSettings):
-    configs[device_id] = config
+    if device_id not in devices:
+        raise HTTPException(status_code=404, detail="Device not found")
+    configs[device_id] = {"device_id": device_id, **config.model_dump()}
     save_data(CONFIG_FILE, configs)
     return config
