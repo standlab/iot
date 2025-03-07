@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 from enum import Enum
 import hashlib
@@ -20,6 +20,12 @@ def load_data(file_path):
 def save_data(file_path, data):
     with open(file_path, "w") as file:
         json.dump(data, file, indent=4)
+
+def data_file():
+    return DATA_FILE
+
+def config_file():
+    return CONFIG_FILE
 
 devices = load_data(DATA_FILE)
 configs = load_data(CONFIG_FILE)
@@ -43,6 +49,9 @@ class DeviceRegistration(BaseModel):
         description=f"Measurements types: {[e.value for e in MeasurementType]}"
     )
     sensor_model: str = Field(..., description="Put particular sensor model name here")
+
+class DeviceRetrieveByMac(BaseModel):
+    mac_address: str = Field("00:00:00:00:00:00")
 
 class ConfigSettings(BaseModel):
     data_cadence: int = Field(60, description="Data transmission interval in seconds")
@@ -74,6 +83,13 @@ def get_all_devices(owner: str):
 
 @app.get("/device/{device_id}", response_model=dict)
 def get_device(device_id: str):
+    if device_id not in devices:
+        raise HTTPException(status_code=404, detail="Device not found")
+    return devices[device_id]
+
+@app.post("/device_by_mac/", response_model=dict)
+def get_device_by_mac(device: DeviceRetrieveByMac):
+    device_id = hash_mac(device.mac_address)
     if device_id not in devices:
         raise HTTPException(status_code=404, detail="Device not found")
     return devices[device_id]
