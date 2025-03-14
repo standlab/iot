@@ -1,10 +1,11 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from pydantic import BaseModel, Field
 from enum import Enum
 import hashlib
 import os
 import json
 import tempfile
+from notifier import send_telegram_notification
 
 app = FastAPI()
 
@@ -59,7 +60,7 @@ class ConfigSettings(BaseModel):
     last_updated: str = Field(..., description="Timestamp of last update")
 
 @app.post("/register/", response_model=dict)
-def register_device(device: DeviceRegistration):
+def register_device(device: DeviceRegistration, tasks: BackgroundTasks):
     device_id = hash_mac(device.mac_address)
     topic = f"{device.owner}/{device.city}/{device.measurement_type}/{device_id}"
     
@@ -68,6 +69,16 @@ def register_device(device: DeviceRegistration):
     
     devices[device_id] = {"device_id": device_id, "topic": topic, **device.model_dump()}
     save_data(DATA_FILE, devices)
+
+    message = (
+        f"New device registered!\n"
+        f"ID: {device_id}\n"
+        f"Location: ({device.longitude}, {device.latitude})\n"
+        f"Owner: {device.owner}\n"
+        f"Measurement Type: {device.measurement_type}\n"
+        f"Sensor Model: {device.sensor_model}"
+    )
+    tasks.add_task(send_telegram_notification, message)
     return {"device_id": device_id, "topic": topic}
 
 @app.get("/devices", response_model=dict)

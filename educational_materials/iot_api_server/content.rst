@@ -57,17 +57,243 @@
 Установим зависимости:
 
 .. code-block:: bash
+
     pip install fastapi==0.115.8
     pip install pydantic==2.10.6
     pip install uvicorn[standard]==0.34.0
 
 
 
+Код клиента расположен в папке esp_client.
+
+
+Уведомления с помощью телеграмм бота
+------------------------------------
+
+На текущий момент у нас есть
+
+1. Регистрация устройств с помощью приложения (сервера) на FastAPI
+2. Общение устройств с помощью MQTT
+
+Т.е. устройства могут регистрироваться и оптравлять сообщения друг дургу. Инженер, который 
+настраивает систему может так же пользоваться API для того, чтобы получать информацию об
+устройствах, мы делали это через ``swagger`` когда заходили на страницу с функциями сервиса 
+``http://localhost:8080/docs``. Однако такой способ коммуникации не удобен для обычного
+пользователя и ему нужно предоставить привычный способ общения: через графический интерфейс или
+приложение которым он и так пользуется. 
+
+Мы воспользуемя вторым сопособ и сделаем телеграм бота, которые будет уведослять пользователя, 
+когда в системе происходят какие-либо события, например регистрируется устройство. События на
+которые будет реагировать бот вы как разработчики всегда можете прописать в коде. Для python
+есть хорошая библиотека для создания своего бота https://github.com/eternnoir/pyTelegramBotAPI.
+
+Добавим ее к нашим зависимостям в ``requirements.txt``:
+
+.. code-block:: bash
+
+    pyTelegramBotAPI==4.26.0
+
+И установим: 
+
+.. code-block:: bash
+
+    pip install -r requirements.txt
+
+Далее напишем код, который будет заниматься отправкой сообщения пользователям. 
+В самой простой реализации сделаем оптправку сообщений всем кого бот "знает".
+
+.. code-block:: python
+
+    # notifier.py
+    import telebot
+    import os
+
+    # Load environment variables
+    TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+    TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+    if TELEGRAM_CHAT_ID:
+        chat_ids = [TELEGRAM_CHAT_ID]
+    else:
+        chat_ids = []
+
+    # Validate environment variables
+    if not TELEGRAM_BOT_TOKEN:
+        raise ValueError("TELEGRAM_BOT_TOKEN is not set in environment variables.")
+
+    bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
+
+    def send_telegram_notification(message: str):
+        """Send a notification message to the configured Telegram chat."""
+        for chat_id in chat_ids:
+            try:
+                bot.send_message(chat_id, message)
+            except Exception as e:
+                print(f"Error sending Telegram notification: {e}")
+
+    if __name__ == "__main__":
+        send_telegram_notification("Hello there?")
+        bot.infinity_polling()
+
+
+Если мы сейчас попробуем выполнить этот код:
+
+.. code-block:: bash
+
+    python notifier.py
   
 
+То получим ошибку, которая говорит, что не установлен токен по которому телеграм поймет какой именно
+бот сейчас задействован. Таким образом токен это ключ, по которому сервер телеграм, поймет с каким
+ботом мы хотим работать и что у нас есть доступ к нему. Можно сказать, что это логин и пароль 
+одновременно.  
+
+.. code-block:: bash
+
+    Traceback (most recent call last):
+    File "..../src/iot_regestration_server/notifier.py", line 10, in <module>
+        raise ValueError("TELEGRAM_BOT_TOKEN is not set in environment variables.")
+    ValueError: TELEGRAM_BOT_TOKEN is not set in environment variables.
+
+Ниже приведен код для того чтобы установить эти 
+
+.. code-block:: bash
+
+    export TELEGRAM_BOT_TOKEN="your_telegram_bot_token"
+
+To make them persistent (for Linux/macOS), add them to your ~/.bashrc or ~/.bash_profile:
+
+.. code-block:: bash
+
+    echo 'export TELEGRAM_BOT_TOKEN="your_telegram_bot_token"' >> ~/.bashrc
+    source ~/.bashrc
+
+Для командной строки Windows :
+
+.. code-block:: bash
+
+    set TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+
+Для Windows (PowerShell):
+
+.. code-block:: bash
+
+    $env:TELEGRAM_BOT_TOKEN="your_telegram_bot_token"
 
 
+Код ``notifier.py`` подразумевает, что мы знаем не только token чата, но и пользователя, которому 
+мы хотим адресовать сообщение. За это отвечает вторая переменная ``TELEGRAM_CHAT_ID``. Если вы 
+знаете этот ID, то можете его задать как показано выше, но если мы делаем это в первый раз, то 
+этой информации у нас нет, поэтому напишем фукнцию, которая вернет нам этот номер. Мы будем 
+использовать декоратор ``@bot.message_handler(commands=['chatid'])`` это нужно для того, чтобы 
+привязать команду пользователя к вызову нашей функции. Работа этой функции очень простая: из
+сообщения пользователя извлекаем ``chat.id`` и передаем его обратно пользователю. Эта функция
+нужна нам для проверки и мы можем ей не пользоваться когда запустим бота в постоянную работу. 
 
 
+.. code-block:: python
 
+    @bot.message_handler(commands=['chatid'])
+    def send_welcome(message: telebot.types.Message) -> None:
+        bot.reply_to(message, f"Your chat id is {message.chat.id}")
+
+
+Так же принято делать команду ``/start``:
+
+.. code-block:: python
+
+    @bot.message_handler(commands=['start'])
+    def send_welcome(message: telebot.types.Message):
+        bot.reply_to(message, "This bot will notify you if some IoT device registered")
+
+
+Запустим бота:
+
+.. code-block:: bash
+
+    python notifier.py
+
+Зайдем в приложение телеграмм и найдем нашего бота по имени. Назмем ``start`` и увидим 
+приветственное сообщение: *This bot will notify you if some IoT device registered*
+Если мы делаем запуск бота в первый раз и еще не установили переменную TELEGRAM_CHAT_ID,
+сообщения *Hello there?* мы не увидим, и это правильно так как бот еще не знает кому отправить
+сообщение ``chat_ids`` пока пустой. Если утсановить переменную TELEGRAM_CHAT_ID:
+
+.. code-block:: bash
+
+    export TELEGRAM_CHAT_ID="your_telegram_chat_id"
+
+То в следующий раз мы получим сообщение сразу.
+
+Интегрируем чат-бота
+--------------------
+
+Проверим, что бот действительно работает и сможет уведомлять нас о регистрации новых устройств.
+Для этого нужно использовать ``send_telegram_notification``, написанную нами ранее. Сущесвтует 
+несколько способов использования в зависимости от требований и желаемой связанности системы:
+
+
+1. (Самый простой) Прямой вызов из FastAPI
+
+   * Когда регистрируется новое устройство, приложение FastAPI отправляет HTTP-запрос напрямую в API Telegram Bot.
+   * Бот немедленно пересылает уведомление настроенному пользователю или группе.
+
+    **Плюсы**: простота, не требуется дополнительная инфраструктура.
+
+    **Минусы**: если Telegram API работает медленно или не работает, это может задержать ответ FastAPI.
+
+2. (Рабочий вариант) Использование фоновой задачи в FastAPI
+
+    * FastAPI поддерживает фоновые задачи с помощью BackgroundTasks.
+    * запрос регистрации устройства ставит в очередь фоновую задачу для отправки уведомления.
+     
+    **Плюсы**: пользователь сразу видит регистрацию устройства, а уведомление выполняется **асинхронно**.
+
+    **Минусы**: если приложение FastAPI выходит из строя или перезапускается, ожидающие уведомления могут быть потеряны.
+
+3. (Микросервисный) Использование очереди или брокера сообщений (например, Redis, RabbitMQ, Kafka)
+   
+   * FastAPI публикует сообщение в очереди при регистрации нового устройства.
+   * Отдельный рабочий процесс (бот Telegram) прослушивает сообщения и отправляет уведомления.
+
+    **Плюсы**: масштабируемость и устойчивость к сбоям; приложение FastAPI отделено от системы уведомлений.
+
+    **Минусы**: требуется дополнительная инфраструктура (например, Redis, RabbitMQ).
+
+Мы выберем компромисный второй вариант, пользоваться первым не рекомендуется, а третий дан 
+для полноты картины, примера применения технолигий (Redis, RabbitMQ, Kafka), которые используются 
+в индустрии. Если вы их освоите это будет плюсом, если вы захотите принять решение в реальных
+проектах. 
+
+Модифицируем код функции для регистрации устройств. Обратите внимание, нам нужно импортировать 
+``BackgroundTasks``, а также добавить параметр ``tasks: BackgroundTasks``, что бы  FastAPI понял, 
+что в этой функции используются фоновые задачи:
+
+.. code-block:: python
+
+    from fastapi import BackgroundTasks
+
+    @app.post("/register/", response_model=dict)
+    def register_device(device: DeviceRegistration, tasks: BackgroundTasks):
+
+        # unaffected previous code
+
+        message = (
+            f"New device registered!\n"
+            f"ID: {device_id}\n"
+            f"Location: ({device.longitude}, {device.latitude})\n"
+            f"Owner: {device.owner}\n"
+            f"Measurement Type: {device.measurement_type}\n"
+            f"Sensor Model: {device.sensor_model}"
+        )
+        tasks.add_task(send_telegram_notification, message)
+        return {"device_id": device_id, "topic": topic}
+
+И перезапустим сервис (не забыв прописать TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID), если не сделали 
+это заранее:
+
+.. code-block:: bash
+
+    export TELEGRAM_BOT_TOKEN="your_telegram_bot_token"
+    export TELEGRAM_CHAT_ID="your_telegram_chat_id"
+    uvicorn main:app --host 0.0.0.0 --port 8000
 
