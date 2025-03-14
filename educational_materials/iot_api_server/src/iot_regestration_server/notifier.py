@@ -1,12 +1,14 @@
 import telebot
 import logging
 import os
+import threading
 
 # Load environment variables
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+#TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+TELEGRAM_CHAT_ID = None
 if TELEGRAM_CHAT_ID:
-    chat_ids = [TELEGRAM_CHAT_ID]
+    chat_ids = [int(TELEGRAM_CHAT_ID)]
 else:
     chat_ids = []
 
@@ -39,6 +41,9 @@ def send_telegram_notification(message: str):
         except Exception as e:
             print(f"Error sending Telegram notification: {e}")
 
+def start_bot():
+    """Runs the Telegram bot polling"""
+    bot.polling(none_stop=True)
 
 if __name__ == "__main__":
     send_telegram_notification("Hello there?")
