@@ -64,7 +64,77 @@
 
 
 
-Код клиента расположен в папке esp_client.
+Код сервера расположен в папке `./src/iot_regestration_server.`
+
+Код клиента расположен в папке `./src/esp_client.`
+
+
+Разворачиваем на удаленном сервере
+----------------------------------
+
+Для того, чтобы сервер был доступен снаружи, мы можем разместить его на виртуальном сервере. 
+Вам нужно знать пароль и IP адрес сервера:
+
+Подключаемся:
+
+.. code-block:: bash
+
+    artem@pc:~$ ssh admin@62.109.28.99
+        admin@62.109.28.99's password: YOUR_PASSWORD_HERE
+
+        Welcome to Ubuntu 22.04 LTS (GNU/Linux 5.15.0-126-generic x86_64)
+
+        * Documentation:  https://help.ubuntu.com
+        * Management:     https://landscape.canonical.com
+        * Support:        https://ubuntu.com/advantage
+        New release '24.04.2 LTS' available.
+        Run 'do-release-upgrade' to upgrade to it.
+
+        Last login: Thu Mar 20 08:00:05 2025 from 188.162.250.239
+
+Устанавливаем нужные программы:
+
+.. code-block:: bash
+
+        admin@iot-reg:~# sudo apt update
+        admin@iot-reg:~# sudo install git
+            ... installed
+        admin@iot-reg:~# sudo apt install python3-pip
+            ... installed
+        admin@iot-reg:~# sudo apt install python3-venv
+            ... installed
+
+Клонируем проект с кодом:
+
+.. code-block:: bash
+
+        admin@iot-reg:~# git clone https://github.com/standlab/iot
+            Cloning into 'iot'...
+            remote: Enumerating objects: 243, done.
+            remote: Counting objects: 100% (243/243), done.
+            remote: Compressing objects: 100% (178/178), done.
+            remote: Total 243 (delta 81), reused 209 (delta 47), pack-reused 0 (from 0)
+            Receiving objects: 100% (243/243), 8.61 MiB | 2.45 MiB/s, done.
+            Resolving deltas: 100% (81/81), done
+
+Создаем и активируем виртуальное окружение для проекта:
+
+.. code-block:: bash
+
+        admin@iot-reg:~# python3 -m venv ~/iot-regestration-server
+        admin@iot-reg:~# source ~/iot-regestration-server/bin/activate    
+    
+Переходим в папку с кодом сервера, устанавливаем зависимости и запускаем:
+
+.. code-block:: bash
+
+        (iot-regestration-server) admin@iot-reg:~# cd educational_materials/iot_api_server/src/iot_regestration_server/
+        (iot-regestration-server) admin@iot-reg:~# pip install -r requirements.txt
+        (iot-regestration-server) admin@iot-reg:~# uvicorn main:app --host 0.0.0.0 --port 8000
+            INFO:     Started server process [111597]
+            INFO:     Waiting for application startup.
+            INFO:     Application startup complete.
+            INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 
 
 Уведомления с помощью телеграмм бота
@@ -210,7 +280,7 @@ To make them persistent (for Linux/macOS), add them to your ~/.bashrc or ~/.bash
 .. code-block:: python
 
     @bot.message_handler(commands=['chatid'])
-    def send_welcome(message: telebot.types.Message) -> None:
+    def handle_chatid(message: telebot.types.Message) -> None:
         bot.reply_to(message, f"Your chat id is {message.chat.id}")
 
 
@@ -219,7 +289,7 @@ To make them persistent (for Linux/macOS), add them to your ~/.bashrc or ~/.bash
 .. code-block:: python
 
     @bot.message_handler(commands=['start'])
-    def send_welcome(message: telebot.types.Message):
+    def handle_start(message: telebot.types.Message):
         bot.reply_to(message, "This bot will notify you if some IoT device registered")
 
 
