@@ -5,9 +5,10 @@ import hashlib
 import os
 import json
 import tempfile
-from notifier_v1 import send_telegram_notification
 import threading
-from notifier_v1 import start_bot
+
+from notifier import send_telegram_notification, start_bot
+
 
 # Start Telegram bot in a separate thread
 threading.Thread(target=start_bot, daemon=True).start()
@@ -114,6 +115,7 @@ def register_device(device: DeviceRegistration, tasks: BackgroundTasks):
         f"Sensor Model: {device.sensor_model}"
     )
     user_device_links["devices"][device_id] = []
+    #send_telegram_notification(message)
     tasks.add_task(send_telegram_notification, message)
     return {"device_id": device_id, "topic": topic}
 
@@ -220,6 +222,14 @@ def identify_user(user: UserRegistration):
     if user_id not in users:
         raise HTTPException(status_code=404, detail="User not found")
     return users[user_id]
+
+@app.delete("/remove_user/{user_id}")
+def remove_user(user_id: str):
+    if user_id not in users:
+        raise HTTPException(status_code=404, detail="User not found")
+    del users[user_id]
+    save_data(USERS_FILE, users)
+    return {"message": "User {user_id} deleted"}
 
 @app.post("/link_device")
 def link_device_to_user(
